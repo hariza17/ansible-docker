@@ -1,0 +1,32 @@
+- hosts: servers
+  remote_user: ubuntu
+  become: true
+  vars_files:
+    - vars.yml
+
+
+  tasks:
+    - name: Install system packages update_cache=yes
+      apt: pkg={{ item }} state=present
+      with_items: "{{ system_packages }}"
+
+    - name: Adding oficial docker GPG key
+      command: curl -fsSL https://download.docker.com/linux/ubuntu/gpg
+
+    - name: Adding oficial docker GPG key
+      apt_key: id=9DC858229FC7DD38854AE2D88D81803C0EBFCD88 url="https://download.docker.com/linux/ubuntu/gpg" state=absent
+
+    - name: Adding docker repository
+      command: add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable"
+
+    - name: installing Docker
+      apt: name=docker-ce state=installed update_cache=yes cache_valid_time=3600
+
+    - name: Setting overlay2
+      template: src=files/daemon.json dest=/etc/docker/daemon.json
+
+    - name: Stopping Docker service
+      service: name=docker state=stopped
+
+    - name: Starting Docker service
+      service: name=docker state=started

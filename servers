@@ -1,0 +1,7 @@
+192.34.79.158
+192.34.79.210
+192.34.79.215
+
+HKLLMJQXSWOUVPXPHURC
+
+docker run --network host -tdi ccc7a11d65b1
