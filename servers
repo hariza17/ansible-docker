@@ -5,3 +5,11 @@
 HKLLMJQXSWOUVPXPHURC
 
 docker run --network host -tdi ccc7a11d65b1
+
+- name: running container
+      command: docker exec {{ container2 }} /bin/bash -c  "apt-get update -y; apt-get install rabbitmq-server -y; service rabbitmq-server start"
+
+    - name: running container
+      command: docker exec {{ container2 }} /bin/bash -c  "echo -n "'{{ erlang_cookie }}'" > /var/lib/rabbitmq/.erlang.cookie"
+
+

@@ -1,13 +1,21 @@
 - hosts: servers
-  remote_user: ubuntu
-  become: true
+  remote_user: "{{ remote_user }}"
+  become: yes
   vars_files:
     - vars.yml
 
+  handlers:
+  - name: restart docker
+    service: name=docker state=started
+    service: name=docker state=stopped
 
   tasks:
-    - name: Install system packages update_cache=yes
-      apt: pkg={{ item }} state=present
+
+    - name: Install system packages
+      apt:  update_cache=yes
+
+    - name: Install system packages
+      apt: pkg={{ item }} state=present update_cache=yes
       with_items: "{{ system_packages }}"
 
     - name: Adding oficial docker GPG key
@@ -20,13 +28,45 @@
       command: add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable"
 
     - name: installing Docker
-      apt: name=docker-ce state=installed update_cache=yes cache_valid_time=3600
+      apt: name=docker-ce state=installed update_cache=yes allow_unauthenticated=yes
 
     - name: Setting overlay2
       template: src=files/daemon.json dest=/etc/docker/daemon.json
+      notify: restart docker
 
-    - name: Stopping Docker service
-      service: name=docker state=stopped
+    - name: Install docker Python library
+      pip:
+        name: docker-py
+        state: latest
 
-    - name: Starting Docker service
-      service: name=docker state=started
+    - name: Creating the Docker container
+      docker_container:
+        name: "{{ inventory_hostname }}"
+        hostname: "{{ inventory_hostname }}"
+        image: "{{ docker_image }}"
+        network_mode: host
+        restart_policy: always
+        state: started
+        command: /bin/bash
+        interactive: yes
+        etc_hosts:
+          rabbit1: 192.168.3.25
+          rabbit2: 192.168.3.26
+          rabbit3: 192.168.3.27
+
+
+
+    - name: running container and install rabbitmq
+      command: docker exec {{ inventory_hostname }} /bin/bash -c  "apt-get update -y; apt-get install rabbitmq-server -y"
+      with_items: "{{ rabbit_names }}"
+
+    - name: running container and config erland.cooke on all nodes
+      command: docker exec {{ inventory_hostname }} /bin/bash -c  "echo -n "'{{ erlang_cookie }}'" > /var/lib/rabbitmq/.erlang.cookie; chown rabbitmq:rabbitmq /var/lib/rabbitmq/.erlang.cookie; chmod 400 /var/lib/rabbitmq/.erlang.cookie; service rabbitmq-server start"
+
+    - name: starting master node
+      command: docker exec {{ ansible_play_hosts[0] }} /bin/bash -c  "rabbitmqctl start_app"
+      when:  inventory_hostname == ansible_play_hosts[0]
+
+    - name: clustering slaves
+      command: docker exec {{ inventory_hostname }} /bin/bash -c  "rabbitmqctl stop_app; rabbitmqctl join_cluster rabbit@rabbit1; rabbitmqctl start_app"
+      when:  inventory_hostname != ansible_play_hosts[0]

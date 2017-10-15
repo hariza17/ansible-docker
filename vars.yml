@@ -1,5 +1,32 @@
+remote_user: ubuntu
+
+node1: 192.34.79.215
+node2: 192.34.79.158
+node3: 192.34.79.210
+
+docker_image: ubuntu
+
+container1: conte1
+container2: conte2
+container3: conte3
+
+
+erlang_cookie: EZERZFLYKWYEHGMXJSED
+
+
+rabbit_names:
+  -rabbit1
+  -rabbit2
+  -rabbit3
+
+
+
 system_packages:
   - apt-transport-https
   - ca-certificates
   - curl
   - software-properties-common
+  - git
+  - python-pip
+  - python-dev
+  - python-psycopg2
